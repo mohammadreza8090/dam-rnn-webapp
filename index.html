@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dam Displacement Prediction — RNN (Client-Side)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+
+<!-- SheetJS: reads .xlsx files directly in the browser -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- TensorFlow.js: builds, trains and runs the RNN entirely in the browser -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<!-- Plotly.js: interactive charts -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header__title">
+    <h1>Dam Displacement Prediction</h1>
+    <p>RNN monitoring model — runs entirely in your browser, no server involved</p>
+  </div>
+</header>
+
+<div class="app-shell">
+
+  <!-- ============================= LEFT: CONTROL PANEL ============================= -->
+  <aside class="panel">
+
+    <section class="panel__section">
+      <h2>1. Data</h2>
+      <label class="dropzone" id="dropzone" for="file-input">
+        <span id="dropzone-label">Drop an .xlsx file here, or click to browse</span>
+        <input type="file" id="file-input" accept=".xlsx,.xls">
+      </label>
+      <p class="hint" id="file-status">No file loaded yet.</p>
+    </section>
+
+    <section class="panel__section" id="column-section" hidden>
+      <h2>2. Columns</h2>
+
+      <label class="field">
+        <span>Date column</span>
+        <select id="date-col"></select>
+      </label>
+
+      <label class="field">
+        <span>Target column (instrument, e.g. pendulum)</span>
+        <select id="target-col"></select>
+      </label>
+
+      <fieldset class="field">
+        <legend>Input mode</legend>
+        <label class="radio"><input type="radio" name="mode" value="univariate" checked>
+          <span>Univariate — Date + Target only</span></label>
+        <label class="radio"><input type="radio" name="mode" value="multivariate">
+          <span>Multivariate — Date + Target + Water level + Temperature</span></label>
+      </fieldset>
+
+      <div id="multivariate-cols" hidden>
+        <label class="field">
+          <span>Water level column</span>
+          <select id="water-col"></select>
+        </label>
+        <label class="field">
+          <span>Temperature column</span>
+          <select id="temp-col"></select>
+        </label>
+      </div>
+    </section>
+
+    <section class="panel__section collapsible" id="split-section" hidden>
+      <button class="collapsible__toggle" type="button" aria-expanded="false">3. Data split</button>
+      <div class="collapsible__body">
+        <label class="field">
+          <span>Train (%) — <output id="train-pct-out">80</output></span>
+          <input type="range" id="train-pct" min="50" max="90" step="5" value="80">
+        </label>
+        <label class="field">
+          <span>Validation (%) — <output id="val-pct-out">10</output></span>
+          <input type="range" id="val-pct" min="5" max="30" step="5" value="10">
+        </label>
+        <p class="hint">Remaining rows are used for testing.</p>
+      </div>
+    </section>
+
+    <section class="panel__section collapsible" id="model-section" hidden>
+      <button class="collapsible__toggle" type="button" aria-expanded="false">4. Model</button>
+      <div class="collapsible__body">
+        <label class="field">
+          <span>Sequence length (time steps)</span>
+          <input type="number" id="seq-length" value="4" min="2" max="30">
+        </label>
+        <label class="field">
+          <span>RNN units — layer 1</span>
+          <input type="number" id="rnn-units-1" value="90" min="4" max="256">
+        </label>
+        <label class="field">
+          <span>RNN units — layer 2</span>
+          <input type="number" id="rnn-units-2" value="32" min="4" max="256">
+        </label>
+        <label class="field">
+          <span>Dropout rate</span>
+          <input type="number" id="dropout-rate" value="0.25" min="0" max="0.5" step="0.05">
+        </label>
+        <label class="field">
+          <span>Learning rate</span>
+          <input type="number" id="learning-rate" value="0.001" min="0.0001" max="0.05" step="0.0005">
+        </label>
+      </div>
+    </section>
+
+    <section class="panel__section collapsible" id="training-section" hidden>
+      <button class="collapsible__toggle" type="button" aria-expanded="false">5. Training</button>
+      <div class="collapsible__body">
+        <label class="field">
+          <span>Epochs</span>
+          <input type="number" id="epochs" value="200" min="10" max="1000">
+        </label>
+        <label class="field">
+          <span>Batch size</span>
+          <input type="number" id="batch-size" value="8" min="1" max="128">
+        </label>
+        <label class="field">
+          <span>Early-stopping patience</span>
+          <input type="number" id="patience" value="30" min="5" max="200">
+        </label>
+      </div>
+    </section>
+
+    <button class="run-button" id="run-button" hidden>Run model</button>
+
+  </aside>
+
+  <!-- ============================= RIGHT: RESULTS ============================= -->
+  <main class="content">
+
+    <section class="card" id="raw-preview" hidden>
+      <h2>Raw series</h2>
+      <div id="raw-plot" class="plot"></div>
+    </section>
+
+    <section class="card" id="training-progress" hidden>
+      <h2>Training</h2>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <p class="hint" id="progress-label">Waiting to start…</p>
+    </section>
+
+    <section class="card" id="metrics-card" hidden>
+      <h2>Evaluation metrics</h2>
+      <table class="metrics-table" id="metrics-table">
+        <thead>
+          <tr><th>Split</th><th>R²</th><th>MAE</th><th>MSE</th><th>RMSE</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card" id="main-plot-card" hidden>
+      <h2>Actual vs. predicted</h2>
+      <div id="main-plot" class="plot"></div>
+    </section>
+
+    <section class="card" id="residual-plot-card" hidden>
+      <h2>Residuals</h2>
+      <div id="residual-plot" class="plot"></div>
+    </section>
+
+    <section class="card" id="scatter-plot-card" hidden>
+      <h2>Actual vs. predicted (scatter)</h2>
+      <div id="scatter-plot" class="plot"></div>
+    </section>
+
+    <p class="empty-state" id="empty-state">Load a data file to begin.</p>
+
+  </main>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

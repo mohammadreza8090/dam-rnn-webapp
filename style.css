@@ -1,0 +1,303 @@
+/* ---------------------------------------------------------------------
+   Design tokens
+   Palette is deliberately restrained and instrument-panel-like:
+   a cool slate/off-white workspace, one steel-blue for "actual" data
+   and one amber for "predicted" data (Okabe-Ito colorblind-safe pair),
+   reused consistently across every chart.
+------------------------------------------------------------------------ */
+:root {
+  --bg: #eef1f2;
+  --panel-bg: #ffffff;
+  --ink: #1b2b33;
+  --ink-soft: #55666e;
+  --border: #d7dfe2;
+  --accent-actual: #0072b2;   /* steel blue  — actual / measured values   */
+  --accent-predicted: #e69f00; /* amber       — model predictions          */
+  --accent-line: #7a8c94;     /* muted slate — split markers, gridlines   */
+  --accent-good: #2f7d5a;     /* muted green — positive/ready states      */
+  --radius: 3px;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------
+   Header
+------------------------------------------------------------------------ */
+.app-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-bg);
+  padding: 20px 28px;
+}
+.app-header__title h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.app-header__title p {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+
+/* ---------------------------------------------------------------------
+   Shell layout: fixed control panel + scrolling content
+------------------------------------------------------------------------ */
+.app-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: calc(100vh - 73px);
+}
+
+@media (max-width: 860px) {
+  .app-shell { grid-template-columns: 1fr; }
+}
+
+.panel {
+  border-right: 1px solid var(--border);
+  background: var(--panel-bg);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.content {
+  padding: 24px 28px 60px;
+  max-width: 900px;
+}
+
+/* ---------------------------------------------------------------------
+   Panel sections
+------------------------------------------------------------------------ */
+.panel__section {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.panel__section:last-of-type { border-bottom: none; }
+
+.panel__section h2 {
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  margin: 0 0 12px;
+}
+
+.collapsible__toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.collapsible__toggle::before {
+  content: '▸ ';
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+.collapsible[data-open="true"] .collapsible__toggle::before {
+  transform: rotate(90deg);
+}
+.collapsible__body {
+  display: none;
+}
+.collapsible[data-open="true"] .collapsible__body {
+  display: block;
+}
+
+/* ---------------------------------------------------------------------
+   Fields
+------------------------------------------------------------------------ */
+.field {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13.5px;
+}
+.field span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink-soft);
+}
+.field select,
+.field input[type="number"] {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.field input[type="range"] {
+  width: 100%;
+}
+output {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+
+fieldset.field {
+  border: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+fieldset.field legend {
+  padding: 0;
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+}
+.radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.radio input { margin-top: 3px; }
+
+/* ---------------------------------------------------------------------
+   Upload dropzone
+------------------------------------------------------------------------ */
+.dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 22px 12px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-size: 13px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.dropzone:hover,
+.dropzone.dragover {
+  border-color: var(--accent-actual);
+  color: var(--accent-actual);
+}
+.dropzone input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.hint {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin: 8px 0 0;
+}
+
+/* ---------------------------------------------------------------------
+   Run button
+------------------------------------------------------------------------ */
+.run-button {
+  width: 100%;
+  padding: 11px;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.run-button:hover { background: #0e1a20; }
+.run-button:disabled {
+  background: var(--border);
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------
+   Content cards
+------------------------------------------------------------------------ */
+.card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.card h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.plot {
+  width: 100%;
+  min-height: 320px;
+}
+
+.empty-state {
+  color: var(--ink-soft);
+  font-size: 14px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------
+   Training progress
+------------------------------------------------------------------------ */
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent-actual);
+  transition: width 0.2s ease;
+}
+
+/* ---------------------------------------------------------------------
+   Metrics table
+------------------------------------------------------------------------ */
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.metrics-table th,
+.metrics-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.metrics-table th {
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
